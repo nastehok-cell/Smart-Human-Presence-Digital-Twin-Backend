@@ -1,0 +1,22 @@
+{
+  "name": "Test Area",
+  "width": 1000,
+  "height": 600,
+  "zones": [
+    {
+      "id": "zone_1",
+      "label": "Entrance",
+      "polygon": [[0, 0], [400, 0], [400, 300], [0, 300]]
+    },
+    {
+      "id": "zone_2",
+      "label": "Main Hall",
+      "polygon": [[400, 0], [1000, 0], [1000, 300], [400, 300]]
+    },
+    {
+      "id": "zone_3",
+      "label": "Workspace",
+      "polygon": [[0, 300], [1000, 300], [1000, 600], [0, 600]]
+    }
+  ]
+}

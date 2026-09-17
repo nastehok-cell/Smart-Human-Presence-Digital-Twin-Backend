@@ -1,0 +1,32 @@
+server:
+  url: "http://localhost:3000"
+  event_name: "sensor:update"
+
+camera:
+  index: 0
+  width: 1280
+  height: 720
+  fps_target: 4 # emit rate to server, 2-5 Hz per architecture spec
+
+detector:
+  backend: "yolov8n" # or "mediapipe"
+  model_path: "yolov8n.pt"
+  confidence_threshold: 0.5
+
+zone:
+  id: "zone_1"
+
+# Homography calibration: pixel coordinates in the camera frame mapped to
+# the corresponding coordinates on the 2D floor plan (server/map.json).
+# Computed once per camera placement with cv2.getPerspectiveTransform.
+homography:
+  camera_points:
+    - [0, 0]
+    - [1280, 0]
+    - [1280, 720]
+    - [0, 720]
+  map_points:
+    - [0, 0]
+    - [400, 0]
+    - [400, 300]
+    - [0, 300]

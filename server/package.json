@@ -1,0 +1,16 @@
+{
+  "name": "smart-human-presence-server",
+  "version": "1.0.0",
+  "description": "Node.js + Express + Socket.IO backend for Smart Human Presence Digital Twin",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
