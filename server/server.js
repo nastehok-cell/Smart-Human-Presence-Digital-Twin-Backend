@@ -19,6 +19,12 @@ app.get("/api/map", (req, res) => {
   res.json(mapData);
 });
 
+// Lightweight polling alternative to the Socket.IO connection, for
+// Digital Twin clients that don't want to hold a persistent socket (UC_13).
+app.get("/api/presence", (req, res) => {
+  res.json(state.getAnonymousPresences());
+});
+
 function broadcastState() {
   io.emit("state:update", state.getState());
 }

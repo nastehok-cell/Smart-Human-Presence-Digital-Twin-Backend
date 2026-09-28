@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Backend test frontend</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
+<style>
+  body { font-family: monospace; margin: 20px; background: #111; color: #eee; }
+  h2 { border-bottom: 1px solid #444; padding-bottom: 4px; }
+  input { margin: 2px; padding: 4px; }
+  button { margin: 2px; padding: 4px 10px; cursor: pointer; }
+  #map { position: relative; width: 500px; height: 400px; background: #222; border: 1px solid #555; cursor: crosshair; }
+  .dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); }
+  pre { background: #000; padding: 10px; max-height: 300px; overflow: auto; border: 1px solid #444; }
+  #status { font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h2>Connection: <span id="status">disconnected</span></h2>
+<input id="serverUrl" value="http://localhost:3001" size="30">
+<button onclick="connect()">Connect</button>
+
+<h2>Login (UC_1)</h2>
+<input id="username" placeholder="username" value="testuser">
+<input id="color" type="color" value="#ff0000">
+<button onclick="login()">Login</button>
+<button onclick="logout()">Logout</button>
+<div id="loginResult"></div>
+
+<h2>Move (click the map)</h2>
+<div id="map"></div>
+
+<h2>Fake sensor:update (UC_9)</h2>
+<button onclick="sendFakeSensorEvent()">Send fake sensor event</button>
+<div id="sensorResult"></div>
+
+<h2>GET /api/map</h2>
+<button onclick="loadMap()">Load map</button>
+<pre id="mapResult">(not loaded)</pre>
+
+<h2>Live state:update</h2>
+<pre id="state">(nothing yet)</pre>
+
+<script>
+let socket = null;
+
+function connect() {
+  if (socket) socket.disconnect();
+  const url = document.getElementById('serverUrl').value;
+  socket = io(url);
+
+  socket.on('connect', () => document.getElementById('status').textContent = 'connected (' + socket.id + ')');
+  socket.on('disconnect', () => document.getElementById('status').textContent = 'disconnected');
+
+  socket.on('login:success', (data) => {
+    document.getElementById('loginResult').textContent = 'login:success -> ' + JSON.stringify(data);
+  });
+  socket.on('login:error', (data) => {
+    document.getElementById('loginResult').textContent = 'login:error -> ' + JSON.stringify(data);
+  });
+  socket.on('sensor:error', (data) => {
+    document.getElementById('sensorResult').textContent = 'sensor:error -> ' + JSON.stringify(data);
+  });
+  socket.on('state:update', (state) => {
+    document.getElementById('state').textContent = JSON.stringify(state, null, 2);
+    renderMap(state);
+  });
+}
+
+function login() {
+  if (!socket) return alert('connect first');
+  socket.emit('login', {
+    username: document.getElementById('username').value,
+    avatarColor: document.getElementById('color').value
+  });
+}
+
+function logout() {
+  if (!socket) return;
+  socket.emit('logout');
+  document.getElementById('loginResult').textContent = 'logged out';
+}
+
+document.getElementById('map').addEventListener('click', (e) => {
+  if (!socket) return alert('connect first');
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  socket.emit('user:move', { x, y });
+});
+
+function renderMap(state) {
+  const map = document.getElementById('map');
+  map.querySelectorAll('.dot').forEach(el => el.remove());
+  (state.loggedInUsers || []).forEach(u => {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dot.style.background = u.avatarColor || '#0f0';
+    dot.style.left = (u.location?.x || 0) + 'px';
+    dot.style.top = (u.location?.y || 0) + 'px';
+    dot.title = u.username;
+    map.appendChild(dot);
+  });
+  (state.anonymousPresences || []).forEach(p => {
+    (p.movement_events || []).forEach(m => {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.background = '#888';
+      dot.style.left = m.x + 'px';
+      dot.style.top = m.y + 'px';
+      dot.title = 'sensor: ' + p.zone_id;
+      map.appendChild(dot);
+    });
+  });
+}
+
+function sendFakeSensorEvent() {
+  if (!socket) return alert('connect first');
+  socket.emit('sensor:update', {
+    timestamp: new Date().toISOString(),
+    zone_id: 'zone_1',
+    occupancy_count: 1,
+    movement_events: [{ x: Math.random() * 400, y: Math.random() * 300, confidence: 0.9 }],
+    confidence: 0.9
+  });
+  document.getElementById('sensorResult').textContent = 'sent';
+}
+
+async function loadMap() {
+  const url = document.getElementById('serverUrl').value;
+  try {
+    const res = await fetch(url + '/api/map');
+    document.getElementById('mapResult').textContent = JSON.stringify(await res.json(), null, 2);
+  } catch (err) {
+    document.getElementById('mapResult').textContent = 'error: ' + err.message;
+  }
+}
+
+connect();
+</script>
+
+</body>
+</html>

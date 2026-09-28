@@ -4,7 +4,11 @@
 //   anonymousPresences - anonymous per-zone occupancy from the sensor pipeline
 
 const loggedInUsers = new Map(); // socketId -> { username, avatarColor, location }
-const anonymousPresences = new Map(); // zone_id -> latest sensor event
+const anonymousPresences = new Map(); // zone_id -> { event, receivedAt }
+
+// A zone with no sensor:update in this window is treated as stale and
+// dropped, rather than shown to the Digital Twin as permanent occupancy.
+const PRESENCE_TTL_MS = 5000;
 
 function isUsernameTaken(username) {
   const lower = username.toLowerCase();
@@ -32,13 +36,26 @@ function removeLoggedInUser(socketId) {
 }
 
 function upsertAnonymousPresence(event) {
-  anonymousPresences.set(event.zone_id, event);
+  anonymousPresences.set(event.zone_id, { event, receivedAt: Date.now() });
+}
+
+function getAnonymousPresences() {
+  const now = Date.now();
+  const fresh = [];
+  for (const [zoneId, entry] of anonymousPresences) {
+    if (now - entry.receivedAt > PRESENCE_TTL_MS) {
+      anonymousPresences.delete(zoneId);
+      continue;
+    }
+    fresh.push(entry.event);
+  }
+  return fresh;
 }
 
 function getState() {
   return {
     loggedInUsers: Array.from(loggedInUsers.values()),
-    anonymousPresences: Array.from(anonymousPresences.values())
+    anonymousPresences: getAnonymousPresences()
   };
 }
 
@@ -48,5 +65,7 @@ module.exports = {
   updateUserLocation,
   removeLoggedInUser,
   upsertAnonymousPresence,
-  getState
+  getAnonymousPresences,
+  getState,
+  PRESENCE_TTL_MS
 };
