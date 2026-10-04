@@ -10,6 +10,13 @@ const PORT = process.env.PORT || 3000;
 const BROADCAST_INTERVAL_MS = 500;
 
 const app = express();
+
+// Allow the frontend (different port) to call the REST endpoints from the browser.
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*" }
