@@ -30,6 +30,7 @@ A client disconnecting (tab closed, network drop) is treated the same as `logout
 | Method | Path | Response |
 |---|---|---|
 | GET | `/api/map` | Contents of `server/map.json` — zone polygons for the test area. |
+| GET | `/api/presence` | Array of the latest `sensor:update` event per zone (the `anonymousPresences` slice of `state:update`). A zone with no update in the last 5s (`PRESENCE_TTL_MS` in `server/state.js`) is dropped rather than returned stale. |
 
 ## Sensor event schema
 
@@ -54,18 +55,21 @@ transmitted — only this derived, anonymous JSON object.
 ## Digital Twin integration (UC_13)
 
 The Digital Twin team should only ever see `anonymousPresences`, never
-`loggedInUsers`. Two integration options, to be finalized separately:
+`loggedInUsers`. Two integration options:
 
-1. Subscribe to the same Socket.IO server on a dedicated namespace/topic
-   that emits only the `anonymousPresences` slice of `state:update`.
-2. Poll `GET /api/presence` (to be added) for the latest anonymous state
-   as a lighter-weight alternative to a persistent socket connection.
+1. **Implemented:** poll `GET /api/presence` for the latest anonymous
+   state — a lighter-weight alternative to a persistent socket
+   connection, and the recommended default.
+2. **Future option, not yet implemented:** subscribe to the same
+   Socket.IO server on a dedicated namespace/topic that emits only the
+   `anonymousPresences` slice of `state:update`, for callers that need
+   push updates instead of polling.
 
 ## In-memory state shape (`server/state.js`)
 
 ```js
 loggedInUsers: Map<socketId, { username, avatarColor, location: { x, y } }>
-anonymousPresences: Map<zone_id, latestSensorEvent>
+anonymousPresences: Map<zone_id, { event: latestSensorEvent, receivedAt: number }>
 ```
 
 Nothing here is written to disk or a database — restarting the server
