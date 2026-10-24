@@ -36,7 +36,7 @@ test("validateSensorUpdate rejects negative occupancy_count", () => {
 });
 
 test("validateLogin accepts a well-formed payload", () => {
-  assert.equal(validateLogin({ username: "alice", avatarColor: "#ff0000" }), false);
+  assert.equal(validateLogin({ username: "alice", avatarColor: "#ff0000" }), true);
 });
 
 test("validateLogin rejects a missing avatarColor", () => {
