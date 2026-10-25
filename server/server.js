@@ -1,5 +1,7 @@
+require("dotenv").config();
 const http = require("http");
 const express = require("express");
+const cors = require("cors");
 const { Server } = require("socket.io");
 
 const state = require("./state");
@@ -8,18 +10,14 @@ const mapData = require("./map.json");
 
 const PORT = process.env.PORT || 3000;
 const BROADCAST_INTERVAL_MS = 500;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
 const app = express();
-
-// Allow the frontend (different port) to call the REST endpoints from the browser.
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
-});
+app.use(cors({ origin: CORS_ORIGIN }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: { origin: CORS_ORIGIN },
 });
 
 app.get("/api/map", (req, res) => {
@@ -74,7 +72,7 @@ io.on("connection", (socket) => {
     if (!validateSensorUpdate(payload)) {
       socket.emit("sensor:error", {
         message: "Invalid sensor event",
-        errors: validateSensorUpdate.errors
+        errors: validateSensorUpdate.errors,
       });
       return;
     }
