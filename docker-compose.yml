@@ -1,0 +1,9 @@
+services:
+  backend:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    restart: unless-stopped
